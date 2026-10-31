@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const defaultRoomsRepository = require('./repositories/roomsRepository');
+const frontendDirectory = path.join(__dirname, '..', '..', 'frontend');
 
 function validateRoom(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -46,7 +47,7 @@ function createApp({ roomsRepository = defaultRoomsRepository } = {}) {
   const app = express();
 
   app.use(express.json());
-  app.use(express.static(path.join(__dirname, '..', 'frontend')));
+  app.use(express.static(frontendDirectory));
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, message: 'API do reserve.me funcionando.' });
@@ -128,7 +129,7 @@ function createApp({ roomsRepository = defaultRoomsRepository } = {}) {
       return res.status(404).json({ ok: false, message: 'Endpoint não encontrado.' });
     }
 
-    return res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'), (error) => {
+    return res.sendFile(path.join(frontendDirectory, 'index.html'), (error) => {
       if (error) {
         next(error);
       }

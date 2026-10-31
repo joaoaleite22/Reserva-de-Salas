@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { after, before, test } = require('node:test');
-const { createApp } = require('../app');
+const { createApp } = require('../src/app');
 
 const existingRoom = {
   id: 1,
@@ -48,6 +48,14 @@ test('GET /api/rooms lists rooms with their resources', async () => {
     ok: true,
     data: [existingRoom],
   });
+});
+
+test('GET / serves the frontend entry point', async () => {
+  const response = await fetch(`${baseUrl}/`);
+  const html = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(html, /Entrar \| reserve\.me/);
 });
 
 test('POST /api/rooms trims and creates a room with resources', async () => {

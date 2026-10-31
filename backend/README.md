@@ -8,10 +8,13 @@ Na raiz do projeto, inicie o MySQL local:
 docker compose up -d database
 ```
 
-O container cria o banco `reserve_me` e executa `database/schema.sql` na
-primeira inicialização. O volume `mysql_data` preserva os dados entre
+O container cria o banco `reserve_me` e executa
+`backend/database/schema.sql` na primeira inicialização. O volume `mysql_data` preserva os dados entre
 reinicializações. Para conectar o backend a outro MySQL, configure `DB_HOST`,
 `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` no ambiente.
+
+O código executável fica em `src/`; os testes ficam em `test/` e o schema do
+banco em `database/`.
 
 ## API de salas
 
