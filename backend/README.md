@@ -39,6 +39,26 @@ npm start
 O campo `resources` aceita uma lista de nomes, inclusive vazia. Recursos são
 mantidos em catálogo e associados às salas por uma tabela de relacionamento.
 
+## API de reservas
+
+- `GET /api/reservations`: lista reservas com o nome da sala.
+- `POST /api/reservations`: cria uma reserva. Exemplo:
+
+```json
+{
+  "roomId": 1,
+  "date": "2026-11-05",
+  "startTime": "09:00",
+  "endTime": "10:30",
+  "responsible": "Ana Souza",
+  "purpose": "Reunião pedagógica"
+}
+```
+
+Uma nova reserva recebe a situação `pendente`. São aceitas as situações
+`pendente`, `aprovada`, `rejeitada` e `cancelada`. A sala é vinculada pela
+chave estrangeira; uma sala que tenha reservas não pode ser excluída.
+
 ## Testes
 
 ```sh

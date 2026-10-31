@@ -28,3 +28,24 @@ CREATE TABLE IF NOT EXISTS room_resources (
     FOREIGN KEY (resource_id) REFERENCES resources (id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS reservations (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  room_id INT UNSIGNED NOT NULL,
+  reservation_date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  responsible VARCHAR(120) NOT NULL,
+  purpose VARCHAR(500) NOT NULL,
+  status ENUM('pendente', 'aprovada', 'rejeitada', 'cancelada')
+    NOT NULL DEFAULT 'pendente',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_reservations_room_schedule (room_id, reservation_date, start_time, end_time),
+  INDEX idx_reservations_status (status),
+  CONSTRAINT fk_reservations_room
+    FOREIGN KEY (room_id) REFERENCES rooms (id)
+    ON DELETE RESTRICT,
+  CONSTRAINT chk_reservations_time_order CHECK (end_time > start_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
