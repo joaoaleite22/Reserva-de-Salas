@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>Backend</h1>
+<h2>Banco local</h2>
+<p>Na raiz do projeto, inicie o MySQL local:</p>
+<pre class="prettyprint source lang-sh"><code>docker compose up -d database
+</code></pre>
+<p>O container cria o banco <code>reserve_me</code> e executa
+<code>backend/database/schema.sql</code> na primeira inicialização. O volume <code>mysql_data</code>
+preserva os dados entre reinicializações. Para conectar o backend a outro MySQL,
+configure <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code> e <code>DB_NAME</code> no ambiente.</p>
+<p>O código executável fica em <code>src/</code>; os testes ficam em <code>test/</code> e o schema do
+banco em <code>database/</code>.</p>
+<h2>Modelo do banco</h2>
+<p>Os nomes das tabelas e colunas do banco são em português:</p>
+<ul>
+<li><code>salas</code>: <code>nome</code>, <code>andar</code> e <code>capacidade</code>.</li>
+<li><code>recursos</code>: catálogo dos recursos disponíveis.</li>
+<li><code>sala_recursos</code>: associação entre salas e recursos.</li>
+<li><code>reservas</code>: <code>sala_id</code>, <code>quantidade_alunos</code>, <code>data_reserva</code>, <code>hora_inicio</code>,
+<code>hora_fim</code>, <code>responsavel</code>, <code>finalidade</code> e <code>situacao</code>.</li>
+</ul>
+<p>A API mantém os nomes de propriedades atuais (<code>roomId</code>, <code>date</code>, <code>startTime</code>,
+<code>responsible</code> etc.) para não alterar o contrato consumido pelo frontend.</p>
+<p>Para um banco já criado com o schema anterior em inglês, faça backup e execute
+uma única vez <code>database/migrations/001_traduzir_identificadores_para_portugues.sql</code>
+no banco <code>reserve_me</code>. Não aplique o novo <code>schema.sql</code> sobre esse banco para
+fazer a conversão; o script de migração renomeia as tabelas e colunas existentes
+preservando os dados. Em bancos novos, o <code>schema.sql</code> já cria a estrutura em
+português.</p>
+<h2>API de salas</h2>
+<p>Inicie o backend a partir desta pasta:</p>
+<pre class="prettyprint source lang-sh"><code>npm start
+</code></pre>
+<ul>
+<li><code>GET /api/rooms</code>: lista salas e seus recursos.</li>
+<li><code>GET /api/rooms?minimumCapacity=30</code>: lista somente salas com capacidade
+igual ou superior ao número informado de alunos.</li>
+<li><code>GET /api/resources</code>: lista os recursos cadastrados.</li>
+<li><code>GET /api/rooms?minimumCapacity=30&amp;resourceIds=1,2</code>: combina a capacidade
+com recursos; basta a sala ter pelo menos um dos recursos selecionados.</li>
+<li><code>POST /api/rooms</code>: cadastra sala. Exemplo:</li>
+</ul>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;name&quot;: &quot;Laboratório 01&quot;,
+  &quot;floor&quot;: &quot;Térreo&quot;,
+  &quot;capacity&quot;: 24,
+  &quot;resources&quot;: [&quot;Projetor&quot;, &quot;Computadores&quot;]
+}
+</code></pre>
+<p>O campo <code>resources</code> aceita uma lista de nomes, inclusive vazia. Recursos são
+mantidos em catálogo e associados às salas por uma tabela de relacionamento.
+A tela <code>../frontend/solicitar-reserva.html</code> consulta
+<code>GET /api/rooms?minimumCapacity=N</code> enquanto o professor informa o tamanho da
+turma, mostrando somente salas que comportem todos os alunos.</p>
+<h2>API de reservas</h2>
+<ul>
+<li><code>GET /api/reservations</code>: lista reservas com o nome da sala.</li>
+<li><code>POST /api/reservations</code>: cria uma reserva. Exemplo:</li>
+</ul>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;roomId&quot;: 1,
+  &quot;studentCount&quot;: 24,
+  &quot;date&quot;: &quot;2026-11-05&quot;,
+  &quot;startTime&quot;: &quot;09:00&quot;,
+  &quot;endTime&quot;: &quot;10:30&quot;,
+  &quot;responsible&quot;: &quot;Ana Souza&quot;,
+  &quot;purpose&quot;: &quot;Reunião pedagógica&quot;
+}
+</code></pre>
+<p>Uma nova reserva recebe a situação <code>pendente</code>. São aceitas as situações
+<code>pendente</code>, <code>aprovada</code>, <code>rejeitada</code> e <code>cancelada</code>. A sala é vinculada pela
+chave estrangeira; uma sala que tenha reservas não pode ser excluída.
+O cadastro retorna <code>409 Conflict</code> se já houver, para a mesma sala e data, uma
+reserva pendente ou aprovada com horário sobreposto. Horários consecutivos são
+permitidos; reservas canceladas ou rejeitadas não bloqueiam a sala.
+A quantidade de alunos é registrada em <code>quantidade_alunos</code>. No cadastro, a API
+valida novamente a capacidade da sala; pedidos que excedem o limite são
+rejeitados. Para um banco existente, aplique uma única vez
+<code>database/migrations/003_adicionar_quantidade_alunos.sql</code> após fazer backup.
+O professor também precisa selecionar pelo menos um recurso necessário. A tela
+mostra apenas salas que tenham ao menos um desses recursos e capacidade
+suficiente; a API verifica novamente se a sala escolhida atende a pelo menos
+um dos recursos enviados.</p>
+<h2>Testes</h2>
+<pre class="prettyprint source lang-sh"><code>npm test
+</code></pre>
+<h2>Login e contas</h2>
+<p><code>POST /api/auth/login</code> recebe <code>email</code> e <code>password</code>. As contas são criadas pelo
+administrador; não há cadastro público. Senhas são armazenadas com bcrypt e
+nunca retornadas pela API. Credenciais inválidas ou contas desativadas recebem
+a mesma resposta <code>401</code>. No sucesso, a resposta contém perfil seguro do usuário
+e um token JWT com validade de uma hora.</p>
+<p>Configure <code>.env</code> na raiz a partir de <code>.env.example</code> e substitua
+<code>AUTH_TOKEN_SECRET</code> por um segredo aleatório com pelo menos 32 bytes. Para gerar
+um valor criptograficamente seguro:</p>
+<pre class="prettyprint source lang-sh"><code>node -e &quot;console.log(require('crypto').randomBytes(48).toString('base64url'))&quot;
+</code></pre>
+<p>Para instalações de banco já existentes, aplique a migração de usuários uma
+única vez, após fazer backup:</p>
+<pre class="prettyprint source lang-sql"><code>SOURCE backend/database/migrations/004_criar_usuarios.sql;
+</code></pre>
+<p>Crie uma conta administrativa usando variáveis de ambiente temporárias no
+PowerShell (o valor da senha é solicitado sem eco no terminal):</p>
+<pre class="prettyprint source lang-powershell"><code>$env:NEW_USER_NAME = &quot;Nome do professor&quot;
+$env:NEW_USER_EMAIL = &quot;professor@escola.edu.br&quot;
+$env:NEW_USER_ROLE = &quot;professor&quot;
+$securePassword = Read-Host &quot;Senha inicial&quot; -AsSecureString
+$env:NEW_USER_PASSWORD = [System.Net.NetworkCredential]::new(&quot;&quot;, $securePassword).Password
+npm run user:create
+Remove-Item Env:NEW_USER_NAME, Env:NEW_USER_EMAIL, Env:NEW_USER_ROLE, Env:NEW_USER_PASSWORD
+</code></pre>
+<p>Use <code>NEW_USER_ROLE=gerente</code> para criar uma conta de gerente. A senha inicial
+precisa ter pelo menos 12 caracteres e no máximo 72 bytes UTF-8.</p>
+<h3>Contrato do endpoint</h3>
+<p><code>POST /api/auth/login</code></p>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;email&quot;: &quot;professor@escola.edu.br&quot;,
+  &quot;password&quot;: &quot;senha informada pelo usuário&quot;
+}
+</code></pre>
+<p>Resposta <code>200</code>:</p>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;ok&quot;: true,
+  &quot;message&quot;: &quot;Login realizado com sucesso.&quot;,
+  &quot;token&quot;: &quot;&lt;JWT>&quot;,
+  &quot;user&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Nome do professor&quot;,
+    &quot;email&quot;: &quot;professor@escola.edu.br&quot;,
+    &quot;role&quot;: &quot;professor&quot;
+  }
+}
+</code></pre>
+<p>Credenciais incorretas resultam em <code>401</code>; campos ausentes ou inválidos em <code>400</code>.
+O token é emitido para uso no cliente. As demais rotas da API ainda não exigem
+esse token; a autorização dessas rotas não está incluída nesta implementação.</p>
+<h3>Documentação JSDoc</h3>
+<p>As funções documentadas ficam em <code>src/</code>. Para gerar a referência HTML local:</p>
+<pre class="prettyprint source lang-sh"><code>npm run docs
+</code></pre>
+<p>Abra <code>docs/api/index.html</code> após a geração.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#create">create</a></li><li><a href="global.html#createApp">createApp</a></li><li><a href="global.html#createAuthService">createAuthService</a></li><li><a href="global.html#findByEmail">findByEmail</a></li><li><a href="global.html#hashPassword">hashPassword</a></li><li><a href="global.html#verifyPassword">verifyPassword</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Nov 06 2026 20:04:03 GMT-0300 (Horário Padrão de Brasília)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,18 +1,38 @@
 const { pool } = require('../database/pool');
 
-async function list() {
-  const [rows] = await pool.query(`
+async function list({ minimumCapacity, resourceIds = [] } = {}) {
+  const conditions = [];
+  const values = [];
+
+  if (minimumCapacity !== undefined) {
+    conditions.push('salas.capacidade >= ?');
+    values.push(minimumCapacity);
+  }
+
+  if (resourceIds.length > 0) {
+    const placeholders = resourceIds.map(() => '?').join(', ');
+    conditions.push(`salas.id IN (
+      SELECT sala_id
+      FROM sala_recursos
+      WHERE recurso_id IN (${placeholders})
+    )`);
+    values.push(...resourceIds);
+  }
+
+  const filters = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const [rows] = await pool.execute(`
     SELECT
-      rooms.id,
-      rooms.name,
-      rooms.floor,
-      rooms.capacity,
-      resources.name AS resource
-    FROM rooms
-    LEFT JOIN room_resources ON room_resources.room_id = rooms.id
-    LEFT JOIN resources ON resources.id = room_resources.resource_id
-    ORDER BY rooms.name, resources.name
-  `);
+      salas.id,
+      salas.nome AS name,
+      salas.andar AS floor,
+      salas.capacidade AS capacity,
+      recursos.nome AS resource
+    FROM salas
+    LEFT JOIN sala_recursos ON sala_recursos.sala_id = salas.id
+    LEFT JOIN recursos ON recursos.id = sala_recursos.recurso_id
+    ${filters}
+    ORDER BY salas.nome, recursos.nome
+  `, values);
 
   const rooms = new Map();
 
@@ -41,21 +61,21 @@ async function create(room) {
   try {
     await connection.beginTransaction();
     const [roomResult] = await connection.execute(
-      'INSERT INTO rooms (name, floor, capacity) VALUES (?, ?, ?)',
+      'INSERT INTO salas (nome, andar, capacidade) VALUES (?, ?, ?)',
       [room.name, room.floor, room.capacity],
     );
     const storedResources = [];
 
     for (const resource of room.resources) {
       await connection.execute(
-        'INSERT INTO resources (name) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)',
+        'INSERT INTO recursos (nome) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)',
         [resource],
       );
       const [[resourceRow]] = await connection.execute(
-        'SELECT id, name FROM resources WHERE id = LAST_INSERT_ID()',
+        'SELECT id, nome AS name FROM recursos WHERE id = LAST_INSERT_ID()',
       );
       await connection.execute(
-        'INSERT INTO room_resources (room_id, resource_id) VALUES (?, ?)',
+        'INSERT INTO sala_recursos (sala_id, recurso_id) VALUES (?, ?)',
         [roomResult.insertId, resourceRow.id],
       );
       storedResources.push(resourceRow.name);

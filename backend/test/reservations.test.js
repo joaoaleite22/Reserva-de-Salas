@@ -5,6 +5,7 @@ const { createApp } = require('../src/app');
 const existingReservation = {
   id: 1,
   roomId: 3,
+  studentCount: 20,
   roomName: 'Sala 03',
   date: '2026-11-05',
   startTime: '09:00',
@@ -66,6 +67,8 @@ test('POST /api/reservations creates a pending reservation', async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       roomId: 3,
+      studentCount: 20,
+      requiredResourceIds: [1],
       date: '2026-11-06',
       startTime: '13:00',
       endTime: '14:00',
@@ -81,6 +84,8 @@ test('POST /api/reservations creates a pending reservation', async () => {
       id: 2,
       roomName: 'Sala de teste',
       roomId: 3,
+      studentCount: 20,
+      requiredResourceIds: [1],
       date: '2026-11-06',
       startTime: '13:00',
       endTime: '14:00',
@@ -97,6 +102,8 @@ test('POST /api/reservations rejects impossible dates', async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       roomId: 3,
+      studentCount: 20,
+      requiredResourceIds: [1],
       date: '2026-02-30',
       startTime: '09:00',
       endTime: '10:00',
@@ -118,6 +125,8 @@ test('POST /api/reservations rejects an end time that is not after the start', a
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       roomId: 3,
+      studentCount: 20,
+      requiredResourceIds: [1],
       date: '2026-11-06',
       startTime: '10:00',
       endTime: '10:00',
@@ -139,6 +148,8 @@ test('POST /api/reservations rejects unknown statuses', async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       roomId: 3,
+      studentCount: 20,
+      requiredResourceIds: [1],
       date: '2026-11-06',
       startTime: '10:00',
       endTime: '11:00',

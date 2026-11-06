@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = '/api';
 const form = document.querySelector('#login-form');
 const fields = [
   {
@@ -60,6 +60,8 @@ form.addEventListener('submit', async (event) => {
     };
 
     const result = await submitLogin(payload);
+    sessionStorage.setItem('authToken', result.token);
+    sessionStorage.setItem('authUser', JSON.stringify(result.user));
     alert(result.message);
   } catch (error) {
     showServerError(error.message);

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Solicite uma reserva de sala com capacidade adequada para sua turma."
+    />
+    <title>Solicitar reserva | reserve.me</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./reservation.js" defer></script>
+  </head>
+  <body>
+    <main class="login request-page">
+      <a class="brand" href="./index.html" aria-label="reserve.me — página inicial">
+        reserve<span>.</span>me
+      </a>
+
+      <h1 class="page-title">Solicitar reserva</h1>
+      <p class="page-description">
+        Informe o tamanho da turma para mostrar salas que comportem todos os alunos.
+      </p>
+
+      <form id="reservation-form" class="request-form">
+        <div class="request-field">
+          <label for="student-count">Quantidade de alunos</label>
+          <input
+            id="student-count"
+            name="studentCount"
+            type="number"
+            min="1"
+            max="65535"
+            step="1"
+            required
+            aria-describedby="student-count-help"
+          />
+          <p id="student-count-help" class="field-help">
+            As salas exibidas terão capacidade igual ou maior que esse número.
+          </p>
+        </div>
+
+        <fieldset class="resource-fieldset" aria-describedby="resource-help resource-status">
+          <legend>Recursos necessários</legend>
+          <p id="resource-help" class="field-help">
+            Selecione um ou mais recursos. Serão exibidas salas que tenham pelo menos um deles.
+          </p>
+          <div id="resource-options" class="resource-options"></div>
+          <p id="resource-status" class="field-help" role="status" aria-live="polite">
+            Carregando recursos…
+          </p>
+        </fieldset>
+
+        <div class="request-field">
+          <label for="room">Sala disponível</label>
+          <select id="room" name="roomId" required disabled>
+            <option value="">Informe a quantidade de alunos e os recursos necessários</option>
+          </select>
+          <p id="rooms-status" class="field-help" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="request-field">
+          <label for="date">Data</label>
+          <input id="date" name="date" type="date" required />
+        </div>
+
+        <div class="request-time-fields">
+          <div class="request-field">
+            <label for="start-time">Início</label>
+            <input id="start-time" name="startTime" type="time" required />
+          </div>
+          <div class="request-field">
+            <label for="end-time">Fim</label>
+            <input id="end-time" name="endTime" type="time" required />
+          </div>
+        </div>
+
+        <div class="request-field">
+          <label for="responsible">Responsável</label>
+          <input id="responsible" name="responsible" type="text" maxlength="120" required />
+        </div>
+
+        <div class="request-field">
+          <label for="purpose">Finalidade</label>
+          <textarea id="purpose" name="purpose" maxlength="500" rows="3" required></textarea>
+        </div>
+
+        <p class="required-note">Todos os campos são obrigatórios.</p>
+        <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+        <button class="submit-button" type="submit">Enviar solicitação</button>
+      </form>
+
+      <a class="forgot-link" href="./index.html">Voltar para o login</a>
+
+      <footer class="footer">
+        <a href="./termos-e-privacidade.html#termos">Termos de uso</a>
+        <span aria-hidden="true">·</span>
+        <a href="./termos-e-privacidade.html#privacidade">Privacidade</a>
+      </footer>
+    </main>
+  </body>
+</html>

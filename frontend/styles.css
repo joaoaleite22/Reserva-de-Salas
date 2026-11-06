@@ -55,6 +55,154 @@ a {
   box-shadow: 0 22px 50px rgba(11, 61, 46, 0.22);
 }
 
+.request-page {
+  width: min(100%, 620px);
+}
+
+.request-page .brand {
+  margin-bottom: 28px;
+}
+
+.request-form {
+  display: grid;
+  gap: 16px;
+}
+
+.request-field {
+  display: grid;
+  gap: 7px;
+}
+
+.request-field label {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.resource-fieldset {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+}
+
+.resource-fieldset legend {
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.resource-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.resource-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.request-form .resource-option input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.resource-option:focus-within {
+  outline: 3px solid rgba(20, 107, 58, 0.35);
+  outline-offset: 2px;
+}
+
+.request-form input,
+.request-form select,
+.request-form textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 5px solid var(--danger);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.request-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.request-form input:focus,
+.request-form select:focus,
+.request-form textarea:focus {
+  outline: 3px solid rgba(20, 107, 58, 0.35);
+  outline-offset: 2px;
+}
+
+.request-form select:disabled {
+  background: #eef1ed;
+  color: var(--muted);
+}
+
+.field-help,
+.required-note,
+.form-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.required-note {
+  color: var(--danger-deep);
+  font-weight: 700;
+}
+
+.form-status {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.request-time-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.reservation-link {
+  display: block;
+  margin-top: 12px;
+  color: var(--primary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.reservation-link:hover {
+  color: var(--danger);
+}
+
 .brand {
   display: block;
   width: fit-content;
@@ -397,6 +545,10 @@ a:focus-visible {
   .login {
     padding: 28px 20px 22px;
     border-radius: 22px;
+  }
+
+  .request-time-fields {
+    grid-template-columns: 1fr;
   }
 
   .legal-header {

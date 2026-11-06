@@ -2,6 +2,8 @@ const express = require('express');
 const path = require('path');
 const defaultRoomsRepository = require('./repositories/roomsRepository');
 const defaultReservationsRepository = require('./repositories/reservationsRepository');
+const defaultResourcesRepository = require('./repositories/resourcesRepository');
+const { createAuthService } = require('./services/authService');
 const frontendDirectory = path.join(__dirname, '..', '..', 'frontend');
 const reservationStatuses = ['pendente', 'aprovada', 'rejeitada', 'cancelada'];
 
@@ -54,6 +56,24 @@ function validateReservation(body) {
     return { error: 'Selecione uma sala válida.' };
   }
 
+  if (!Number.isInteger(body.studentCount) || body.studentCount < 1 || body.studentCount > 65535) {
+    return {
+      error: 'Informe a quantidade de alunos como um número inteiro maior que zero.',
+    };
+  }
+
+  if (
+    !Array.isArray(body.requiredResourceIds)
+    || body.requiredResourceIds.length === 0
+    || body.requiredResourceIds.some(
+      (id) => !Number.isInteger(id) || id < 1 || id > 4294967295,
+    )
+  ) {
+    return { error: 'Selecione pelo menos um recurso necessário.' };
+  }
+
+  const requiredResourceIds = [...new Set(body.requiredResourceIds)];
+
   const date = typeof body.date === 'string' ? body.date : '';
   const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (
@@ -101,6 +121,8 @@ function validateReservation(body) {
   return {
     value: {
       roomId: body.roomId,
+      studentCount: body.studentCount,
+      requiredResourceIds,
       date,
       startTime,
       endTime,
@@ -111,9 +133,21 @@ function validateReservation(body) {
   };
 }
 
+/**
+ * Creates the Express API and its static frontend routes.
+ *
+ * @param {object} [dependencies] Repositories and services, replaceable in tests.
+ * @param {object} [dependencies.roomsRepository] Room data access.
+ * @param {object} [dependencies.reservationsRepository] Reservation data access.
+ * @param {object} [dependencies.resourcesRepository] Resource catalog access.
+ * @param {object} [dependencies.authService] Credential verification and token service.
+ * @returns {object} Configured Express application.
+ */
 function createApp({
   roomsRepository = defaultRoomsRepository,
   reservationsRepository = defaultReservationsRepository,
+  resourcesRepository = defaultResourcesRepository,
+  authService = createAuthService(),
 } = {}) {
   const app = express();
 
@@ -124,10 +158,49 @@ function createApp({
     res.json({ ok: true, message: 'API do reserve.me funcionando.' });
   });
 
-  app.get('/api/rooms', async (_req, res, next) => {
+  app.get('/api/rooms', async (req, res, next) => {
+    let minimumCapacity;
+    if (req.query.minimumCapacity !== undefined) {
+      const value = req.query.minimumCapacity;
+      if (!/^[1-9]\d*$/.test(value) || Number(value) > 65535) {
+        return res.status(400).json({
+          ok: false,
+          message: 'A quantidade de alunos deve ser um número inteiro maior que zero.',
+        });
+      }
+
+      minimumCapacity = Number(value);
+    }
+
+    let resourceIds = [];
+    if (req.query.resourceIds !== undefined) {
+      const value = req.query.resourceIds;
+      if (
+        typeof value !== 'string'
+        || !/^[1-9]\d*(,[1-9]\d*)*$/.test(value)
+        || value.split(',').some((id) => Number(id) > 4294967295)
+      ) {
+        return res.status(400).json({
+          ok: false,
+          message: 'Os recursos selecionados são inválidos.',
+        });
+      }
+
+      resourceIds = [...new Set(value.split(',').map(Number))];
+    }
+
     try {
-      const rooms = await roomsRepository.list();
+      const rooms = await roomsRepository.list({ minimumCapacity, resourceIds });
       res.json({ ok: true, data: rooms });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/api/resources', async (_req, res, next) => {
+    try {
+      const resources = await resourcesRepository.list();
+      res.json({ ok: true, data: resources });
     } catch (error) {
       next(error);
     }
@@ -168,32 +241,69 @@ function createApp({
       const reservation = await reservationsRepository.create(result.value);
       return res.status(201).json({ ok: true, data: reservation });
     } catch (error) {
+      if (error.code === 'RESERVATION_CONFLICT') {
+        return res.status(409).json({ ok: false, message: error.message });
+      }
+
+      if (error.code === 'ROOM_NOT_FOUND') {
+        return res.status(404).json({ ok: false, message: error.message });
+      }
+
+      if (error.code === 'ROOM_CAPACITY_EXCEEDED') {
+        return res.status(400).json({ ok: false, message: error.message });
+      }
+
+      if (error.code === 'ROOM_RESOURCE_MISMATCH') {
+        return res.status(400).json({ ok: false, message: error.message });
+      }
+
       return next(error);
     }
   });
 
-  app.post('/api/auth/login', (req, res) => {
+  /**
+   * @route POST /api/auth/login
+   * @description Authenticates an account and returns a one-hour JWT.
+   */
+  app.post('/api/auth/login', async (req, res, next) => {
     const { email, password } = req.body || {};
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       return res.status(400).json({
         ok: false,
         message: 'E-mail e senha são obrigatórios.',
       });
     }
 
-    if (!email.includes('@')) {
+    if (
+      email.trim().length > 254
+      || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      || Buffer.byteLength(password, 'utf8') > 72
+    ) {
       return res.status(400).json({
         ok: false,
-        message: 'Informe um e-mail válido.',
+        message: 'Informe um e-mail e uma senha válidos.',
       });
     }
 
-    return res.json({
-      ok: true,
-      message: 'Login realizado com sucesso.',
-      user: { email },
-    });
+    try {
+      const result = await authService.authenticate(email, password);
+      if (!result) {
+        return res.status(401).json({
+          ok: false,
+          message: 'E-mail ou senha inválidos.',
+        });
+      }
+
+      return res.json({
+        ok: true,
+        message: 'Login realizado com sucesso.',
+        token: result.token,
+        user: result.user,
+      });
+    } catch (error) {
+      return next(error);
+    }
   });
 
   app.post('/api/auth/recover', (req, res) => {
